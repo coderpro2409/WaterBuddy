@@ -1,2 +1,1 @@
-streamlit
-tkinter
+datetime, random, subprocess, sys, textwrap, time, streamlit, tkinter
