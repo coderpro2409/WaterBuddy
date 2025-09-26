@@ -1,8 +1,2 @@
-datetime
-random
-time
 streamlit
 tkinter
-subprocess
-sys
-textwrap
