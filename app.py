@@ -1,277 +1,320 @@
-import datetime
-import random
-import subprocess
-import sys
-import textwrap
-import time
 import streamlit as st
-from tkinter import *
+import datetime
+from datetime import timedelta
+import pandas as pd
+import plotly.graph_objects as go
 
-var=st.session_state
-hl=st.divider
-if "name" not in var:
-    var.name=None
-if "age_group" not in var:
-    var.age_group=None
-if "gender" not in var:
-    var.gender=None
-if "application" not in var:
-    var.application=0
-if "mode" not in var:
-    var.mode="DND"
-if "timelist" not in var:
-    var.timelist=[]
-if "sleeptime" not in var:
-    var.sleeptime=None
-if "wi_final" not in var:
-    var.wi_final=None
-if "rl2" not in var:
-    var.rl2=[]
-if var.application==0:
-    page_bgx = """
-    <style>
-    [data-testid="stAppViewContainer"] {
-        background: linear-gradient(135deg, #A101EB, #01EBD0);  /* blue to green */
-        background-size: cover;
-    }
-    button {
-        background: blue;
-    }
-    </style>
-    """
-    st.markdown(page_bgx, unsafe_allow_html=True)
-    age_groups=["6-12","13-18","19-30","30-50","50+"]
-    st.write("<h2 style='color:white;'>Just a Few Details Before we Dive In...</h2>",unsafe_allow_html=True)
-    var.name=st.text_input(" ",placeholder="Name")
-    hl()
-    st.markdown('<p style="color:white;">Age Group</p>', unsafe_allow_html=True)
-    var.age_group=st.selectbox("Age Group",age_groups,label_visibility="collapsed")
-    hl()
+# Set page config
+st.set_page_config(
+    page_title="💧 Hydration Reminder",
+    page_icon="💧",
+    layout="wide",
+    initial_sidebar_state="collapsed"
+)
 
-    st.markdown('<p style="color:white;">Gender</p>', unsafe_allow_html=True)
-    var.gender=st.selectbox("Gender",["male","female"],label_visibility="collapsed")
-    hl()
-    st.markdown('<p style="color:white;">Sleep Time (Hour)</p>', unsafe_allow_html=True)
-    var.sleephour=st.selectbox("Sleep Time (Hour)",["1","2","3","4","5","6","7","8","9","10","11","12"],label_visibility="collapsed")
-    hl()
-    st.markdown('<p style="color:white;">Sleep Time (Minute)</p>', unsafe_allow_html=True)
-    var.sleepminute=st.selectbox("Sleep Time (Minute)",["00","15","30","45"],label_visibility="collapsed")
-    hl()
-    st.markdown('<p style="color:white;">Sleep Time (AM/PM)</p>', unsafe_allow_html=True)
-    var.sleepmeridien=st.selectbox("Sleep Time (AM/PM)",["AM","PM"],label_visibility="collapsed")
-    hl()
-    var.male_water_intake = [1.75, 2.50, 2.75, 2.75, 2.75]    # in liters/day
-    var.female_water_intake = [1.50, 1.75, 2.00, 2.00, 2.00]
-    if var.gender=="male":
-        var.wi=var.male_water_intake[age_groups.index(var.age_group)]*1000
-    if var.gender=="female":
-        var.wi=var.female_water_intake[age_groups.index(var.age_group)]*1000
-    var.whole=[]
-    for i in range(250,5250,250):
-        var.whole.append(str(i))
-    st.markdown(f'<p style="color:white;">Water Target: (Ideally Suggested for you {int(var.wi)} ml)</p>', unsafe_allow_html=True)
-    var.wi_final=st.selectbox("Water Target: (Ideally Suggested for you "+str(int(var.wi))+" ml)",var.whole,var.whole.index(str(int(var.wi))),label_visibility="collapsed")
-    var.wi_final=int(var.wi_final)
-    var.completed=0
-    var.final_name=var.name
-    if st.button("Advance"):
-        if var.name.replace(" ","")=="":
-            popen_code=textwrap.dedent(f"""from tkinter import *\nwarning_n=Tk()\nwarning_n.geometry('700x100+410+90')\nwarning_n.config(bg='blue')\nwarning_n.attributes("-topmost",True)\nwarning_n.overrideredirect(True)\nLabel(warning_n,text="Seems like you have forgot to mention your name!",font=("Arial",20),bg='blue',fg='white').pack()\nButton(warning_n,text="Dismiss",font=("Arial",20),bg='green',fg='white',activebackground='green',activeforeground='white',command=lambda: warning_n.destroy()).pack()\nwarning_n.mainloop()""")
-            subprocess.Popen([sys.executable,"-c",popen_code])
-        else:
-            var.application=1
-            st.rerun()
-
-
-
-if var.application==1:
-    var.init_time=datetime.datetime.now()
-    if var.sleepmeridien=="PM":
-        var.meridien_adjustment=12
-    else:
-        var.meridien_adjustment=0
-    var.hour_meridien=int(var.sleephour)+var.meridien_adjustment
-    var.timeleft=int((var.hour_meridien-var.init_time.hour)*60)+(int(var.sleepminute)-30-var.init_time.minute)
-    if var.timeleft<=0:
-        var.application=3
-        st.rerun()
-    else:
-        var.d=250
-        var.n=var.wi_final/var.d
-        var.per=int(var.timeleft/var.n)
-        print(var.timeleft,var.per)
-        if round(var.per,-1)<30:
-            var.application=3
-            st.rerun()
-        var.reminder_list=[]
-        for item in range(1,int(var.n+1)):
-            var.reminder_list.append([int(((var.init_time.hour*60)+var.init_time.minute+(item*var.per))//60),int(((var.init_time.hour*60)+var.init_time.minute+(item*var.per))%60)])
-        print(var.reminder_list)
-    motivating_words=["Come on","You can do it","Keep pushing","Nail it"]
-    code=f"""
-    from tkinter import *
-    import datetime
-    import pygame
-    warning_n=Tk()
-    # warning_n.geometry('500x100+1400+650')
-    warning_n.config(bg='white')
-    list_time={var.reminder_list}
-    def update():
-        time=datetime.datetime.now()
-        for i in list_time:
-            if time.hour==i[0]:
-                if time.minute==i[1]:
-                    warning_n.deiconify()
-                    message['text']='{random.choice(motivating_words)}! Take your Glass of Water!'
-                    warning_n.attributes("-topmost",True)
-                    pygame.mixer.init()
-                    pygame.mixer.music.load("closure-542.mp3")
-                    pygame.mixer.music.play()
-                    del list_time[0]
-        warning_n.after(100,update)
-    
-    # warning_n.overrideredirect(True)
-    message=Label(warning_n,text="Take your Glass of Water!",font=("Arial",20),bg='blue',fg='white')
-    message.pack()
-    Button(warning_n,text="Dismiss",font=("Arial",20),bg='green',fg='white',activebackground='green',activeforeground='white',command=lambda: warning_n.withdraw()).pack()
-    update()
-    warning_n.withdraw()
-    warning_n.mainloop()
-    """
-    popen_code=textwrap.dedent(code)
-    subprocess.Popen([sys.executable,"-c",popen_code])
-
-    page_bg = """
-    <style>
-    [data-testid="stAppViewContainer"] {
-        background: linear-gradient(135deg, #0A48F5, #4DF50A);  /* blue to green */
-        background-size: cover;
-    }
-    button {
-        background: blue;
-    }
-    </style>
-    """
-    st.markdown(page_bg, unsafe_allow_html=True)
-    st.write(f"<h1 style='color: white;'>Hi {var.name}!</h1>",unsafe_allow_html=True)
-    st.write(f"<h4 style='color: white;'>Today's Target: {int(var.wi_final)} ml</h4>",unsafe_allow_html=True)
-    var.bar=st.progress(0)
-    init="90deg, #0A48F5, #4DF50A"
-    end="90deg, #FF8C42, #FF4B2B"
-    st.markdown("""
+# Custom CSS for futuristic design
+st.markdown("""
 <style>
-/* Change the progress bar height */
-div[data-testid="stProgress"] > div > div > div {
-    height: 30px;
-    border-radius: 15px;
-}
-
-/* Change the progress bar color */
-div[data-testid="stProgress"] > div > div > div > div {
-    background: linear-gradient("""+init+""");
-}
+    .main-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 2rem;
+        border-radius: 15px;
+        text-align: center;
+        color: white;
+        margin-bottom: 2rem;
+    }
+    
+    .water-glass {
+        width: 100px;
+        height: 150px;
+        border: 3px solid #4a90e2;
+        border-radius: 0 0 10px 10px;
+        position: relative;
+        margin: 0 auto;
+        background: linear-gradient(to top, #4fc3f7 0%, #4fc3f7 var(--fill-height), transparent var(--fill-height));
+    }
+    
+    .stats-card {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        padding: 1.5rem;
+        border-radius: 15px;
+        color: white;
+        text-align: center;
+        margin: 1rem 0;
+    }
+    
+    .reminder-card {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        padding: 1rem;
+        border-radius: 10px;
+        margin: 0.5rem 0;
+        color: white;
+    }
+    
+    .track-record {
+        background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        padding: 1rem;
+        border-radius: 10px;
+        margin: 0.5rem 0;
+    }
+    
+    .congratulations {
+        background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+        padding: 3rem;
+        border-radius: 20px;
+        text-align: center;
+        animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
+    }
 </style>
 """, unsafe_allow_html=True)
-    if st.button("Quick +250 ml"):
-        var.completed+=250
-        
-        if var.completed/var.wi_final<=0.6:
-            main=init
-        else:
-            main=end
-        st.markdown("""
-    <style>
-    /* Change the progress bar height */
-    div[data-testid="stProgress"] > div > div > div {
-        height: 30px;
-        border-radius: 15px;
-    }
 
-    /* Change the progress bar color */
-    div[data-testid="stProgress"] > div > div > div > div {
-        background: linear-gradient("""+main+""");
-    }
-    </style>
-    """, unsafe_allow_html=True)
-        var.bar.progress(var.completed/var.wi_final)
-        st.write(f"<h4 style='color: white;'>Water Drunk: {var.completed} ml</h4>",unsafe_allow_html=True)
-        st.write(f"<h4 style='color: white;'>Percentage: {round((var.completed/var.wi_final)*100,1)}</h4>",unsafe_allow_html=True)
-        time.sleep(0.05)
-        now=datetime.datetime.now()
-        ampm=""
-        hour=""
-        if now.hour>=12:
-            hour=now.hour-12
-            ampm="P.M."
-        else:
-            hour=now.hour
-            ampm="A.M."
-        var.timelist.append(f"{now.day}/{now.month}/{now.year} - {hour}:{now.minute} {ampm}")
-        print(var.timelist)
-        st.write("<br><br><h4 style='color: white;'>Time Record</h4>",unsafe_allow_html=True)
-        for x in var.timelist[::-1]:
-            st.write(f"<h5 style='color: white;'>{x}</h5>",unsafe_allow_html=True)
-        if var.wi_final-var.completed<=0:
-            var.application=2
-            st.rerun()
-    st.write("<h3 style='color: white;'>Time Reminders</h3>",unsafe_allow_html=True)
+# Initialize session state
+if 'stage' not in st.session_state:
+    st.session_state.stage = 'details'
     
-    for m in var.reminder_list:
-        show_hour=m[0]
-        show_minute=m[1]
-        show_ampm="A.M."
-        if show_hour>12:
-            show_hour=show_hour-12
-            show_ampm="P.M."
-        else:
-            show_ampm="A.M."
-if var.application==2:
-    page_bg = """
-    <style>
-    [data-testid="stAppViewContainer"] {
-        background: linear-gradient(135deg, #0A48F5, #4DF50A);  /* blue to green */
-        background-size: cover;
-    }
-    button {
-        background: blue;
-    }
-    </style>
-    """
-    st.markdown(page_bg, unsafe_allow_html=True)
-    st.write(f"<h1 style='color: white;'>Hi {var.name}</h1>",unsafe_allow_html=True)
-    st.write(f"<h4 style='color: white;'>Congratulations! You have reached your today's target! Your target has been reset. Come back tomorrow</h4>",unsafe_allow_html=True)
-    st.write(f"<h4 style='color: white;'>Till then, Bye Bye...</h4>",unsafe_allow_html=True)
-    st.write("<br><br><h4 style='color: white;'>Time Record</h4>",unsafe_allow_html=True)
-    for x in var.timelist[::-1]:
-        st.write(f"<h5 style='color: white;'>{x}</h5>",unsafe_allow_html=True)
-    for m in range(0,5):
-        st.balloons()
-        time.sleep(0.05)
-if var.application==3:
-    page_bg = """
-    <style>
-    [data-testid="stAppViewContainer"] {
-        background: linear-gradient(135deg, #0A48F5, #4DF50A);  /* blue to green */
-        background-size: cover;
-    }
-    button {
-        background: blue;
-    }
-    </style>
-    """
-    st.markdown(page_bg, unsafe_allow_html=True)
+if 'water_consumed' not in st.session_state:
+    st.session_state.water_consumed = 0
+    
+if 'consumption_log' not in st.session_state:
+    st.session_state.consumption_log = []
 
+def calculate_water_target(age_group, gender):
+    """Calculate recommended water target based on age and gender"""
+    male_targets = [1.75, 2.5, 2.75, 2.75, 2.75]  # for age groups 6-12,13-18,19-30,31-50,50+
+    female_targets = [1.5, 1.75, 2, 2, 2]
+    
+    age_groups = ["6-12", "13-18", "19-30", "31-50", "50+"]
+    age_index = age_groups.index(age_group)
+    
+    if gender == "Male":
+        return male_targets[age_index] * 1000  # Convert to ml
+    else:
+        return female_targets[age_index] * 1000
 
-    st.markdown(f"<h1 style='color: white;'>Hi {var.name}</h1>", unsafe_allow_html=True)
-    st.markdown("<h4 style='color: white;'>Sorry but it seems that we have ran out of time as its too late. Our day ends at 12:00 AM (Midnight)</h4>", unsafe_allow_html=True)
-    st.markdown("<h4 style='color: white;'>Don't Worry. Give a fresh try tomorrow</h4>", unsafe_allow_html=True)
-    st.markdown("<h4 style='color: white;'>Till then, GOOD NIGHT!</h4>", unsafe_allow_html=True)
+def calculate_reminders(target_ml, consumed_ml, sleep_hour, sleep_minute):
+    """Calculate reminder timings based on remaining water and time"""
+    now = datetime.datetime.now()
+    sleep_time = now.replace(hour=sleep_hour, minute=sleep_minute)
+    
+    # If sleep time is earlier than current time, assume it's for tomorrow
+    if sleep_time <= now:
+        sleep_time += timedelta(days=1)
+    
+    remaining_time = sleep_time - now
+    remaining_hours = remaining_time.total_seconds() / 3600
+    
+    remaining_ml = target_ml - consumed_ml
+    servings_needed = max(0, (remaining_ml / 250)+1)
+    
+    if servings_needed <= 0 or remaining_hours <= 0:
+        return []
+    
+    interval_hours = remaining_hours / servings_needed if servings_needed > 0 else 1
+    
+    reminders = []
+    current_time = now
+    
+    for i in range(int(servings_needed)):
+        current_time += timedelta(hours=interval_hours)
+        if current_time < sleep_time:
+            reminders.append(current_time.strftime("%H:%M"))
+    
+    return reminders
 
-    st.markdown(
-        """
-        <div style="display:flex; justify-content:center; align-items:center;">
-            <img src='https://copilot.microsoft.com/th/id/BCO.cfa057af-5533-40e9-978a-9ac3f0950d38.png' width='250'>
-        </div>
-        """,
-        unsafe_allow_html=True
+def draw_water_glass(percentage):
+    """Draw a water glass with fill percentage"""
+    fig = go.Figure()
+    
+    # Glass outline
+    fig.add_shape(
+        type="rect",
+        x0=0, y0=0, x1=1, y1=1,
+        line=dict(color="#4a90e2", width=3),
+        fillcolor="rgba(0,0,0,0)"
     )
+    
+    # Water fill
+    fill_height = percentage / 100
+    fig.add_shape(
+        type="rect",
+        x0=0, y0=0, x1=1, y1=fill_height,
+        fillcolor="#4fc3f7",
+        line=dict(width=0)
+    )
+    
+    fig.update_layout(
+        showlegend=False,
+        xaxis=dict(visible=False),
+        yaxis=dict(visible=False),
+        width=200,
+        height=300,
+        margin=dict(l=0, r=0, b=0, t=0)
+    )
+    
+    return fig
+
+# Stage 1: User Details
+if st.session_state.stage == 'details':
+    st.markdown('<div class="main-header"><h1>💧 Welcome to Hydration Reminder</h1><p>Let\'s personalize your water intake goals!</p></div>', unsafe_allow_html=True)
+    
+    with st.form("user_details"):
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            name = st.text_input("👤 Your Name", placeholder="Enter your name")
+            age_group = st.selectbox("🎂 Age Group", ["6-12", "13-18", "19-30", "31-50", "50+"])
+            gender = st.selectbox("⚧ Gender", ["Male", "Female"])
+        
+        with col2:
+            sleep_hour = st.selectbox("🌙 Sleep Hour", range(18, 24), index=4)  # Default 22:00
+            sleep_minute = st.selectbox("🌙 Sleep Minute", [0, 15, 30, 45], index=0)
+            
+            # Calculate recommended target
+            recommended_target = calculate_water_target(age_group, gender)
+            
+            # Custom water target
+            custom_target = st.selectbox(
+                f"🎯 Water Target (ml) - Recommended: {int(recommended_target)}ml",
+                range(250, 10250, 250),
+                index=int((recommended_target - 250) / 250)
+            )
+        
+        submitted = st.form_submit_button("🚀 Start Your Hydration Journey!", use_container_width=True)
+        
+        if submitted and name:
+            st.session_state.user_name = name
+            st.session_state.age_group = age_group
+            st.session_state.gender = gender
+            st.session_state.sleep_hour = sleep_hour
+            st.session_state.sleep_minute = sleep_minute
+            st.session_state.water_target = custom_target
+            st.session_state.stage = 'dashboard'
+            st.rerun()
+        elif submitted:
+            st.error("Please enter your name to continue!")
+
+# Stage 2: Dashboard
+elif st.session_state.stage == 'dashboard':
+    # Check if target is reached
+    if st.session_state.water_consumed >= st.session_state.water_target:
+        st.session_state.stage = 'congratulations'
+        st.rerun()
+    percentage = (st.session_state.water_consumed / st.session_state.water_target) * 100
+    
+    st.markdown(f'<div class="main-header"><h1>🌟 Hello, {st.session_state.user_name}!</h1><p>Stay hydrated and healthy today!</p></div>', unsafe_allow_html=True)
+    
+    col1, col2 = st.columns([1, 1])
+    
+    with col1:
+        st.markdown("### 💧 Quick Action")
+        if st.button("⚡ +250ml", use_container_width=True, type="primary"):
+            st.session_state.water_consumed += 250
+            st.session_state.consumption_log.append({
+                'time': datetime.datetime.now().strftime("%H:%M"),
+                'amount': 250
+            })
+            st.rerun()
+        st.markdown(f"""
+        <div class="stats-card">
+            <h3>{percentage:.1f}% Complete</h3>
+            <p>{st.session_state.water_consumed}ml / {st.session_state.water_target}ml</p>
+            <p>Remaining: {max(0, st.session_state.water_target - st.session_state.water_consumed)}ml</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col2:
+        st.markdown("### 📊 Progress")
+        
+        # Display water glass
+        fig = draw_water_glass(min(percentage, 100))
+        st.plotly_chart(fig, use_container_width=True)
+        
+    
+    # with col3:
+    #     st.markdown("### ⏰ Custom Amount")
+    #     custom_amount = st.number_input("Add ml:", min_value=50, max_value=1000, step=50, value=250)
+    #     if st.button(f"Add {custom_amount}ml", use_container_width=True):
+    #         st.session_state.water_consumed += custom_amount
+    #         st.session_state.consumption_log.append({
+    #             'time': datetime.datetime.now().strftime("%H:%M"),
+    #             'amount': custom_amount
+    #         })
+    #         st.rerun()
+    
+    # Reminder Section
+    st.markdown("### 🔔 Smart Reminders")
+    
+    reminders = calculate_reminders(
+        st.session_state.water_target,
+        st.session_state.water_consumed,
+        st.session_state.sleep_hour,
+        st.session_state.sleep_minute
+    )
+    
+    if reminders:
+        st.markdown("**Calculated reminder times:**")
+        for i, reminder_time in enumerate(reminders):
+            # col1, col2 = st.columns([3, 1])
+            # with col1:
+            st.markdown(f'<div class="reminder-card">💧 Reminder {i+1}: {reminder_time}</div>', unsafe_allow_html=True)
+            # with col2:
+            #     new_time = st.selectbox(f"Edit #{i+1}", 
+            #                           [f"{h:02d}:{m:02d}" for h in range(6, 24) for m in [0, 15, 30, 45]], 
+            #                           index=0, key=f"reminder_{i}")
+    else:
+        st.success("🎉 Great job! You're on track or have completed your daily goal!")
+    
+    # Track Record
+    st.markdown("### 📈 Today's Track Record")
+    
+    if st.session_state.consumption_log:
+        df = pd.DataFrame(st.session_state.consumption_log)
+        
+        for idx, record in enumerate(st.session_state.consumption_log):
+            st.markdown(f"""
+            <div class="track-record">
+                <strong>{record['time']}</strong> - Added {record['amount']}ml 💧
+            </div>
+            """, unsafe_allow_html=True)
+    else:
+        st.info("No water consumed yet today. Start hydrating! 💧")
+    
+    # Reset button
+    if st.button("🔄 Reset Today's Progress", type="secondary"):
+        st.session_state.water_consumed = 0
+        st.session_state.consumption_log = []
+        st.rerun()
+
+# Stage 3: Congratulations
+elif st.session_state.stage == 'congratulations':
+    st.markdown(f"""
+    <div class="congratulations">
+        <h1>🎉 Congratulations, {st.session_state.user_name}!</h1>
+        <h2>💧 You've reached your daily hydration goal! 💧</h2>
+        <p style="font-size: 1.2em;">Target: {st.session_state.water_target}ml ✅</p>
+        <p style="font-size: 1.2em;">Consumed: {st.session_state.water_consumed}ml 🌟</p>
+        <br>
+        <h3>🌅 See you tomorrow morning for another healthy day!</h3>
+        <p>Keep up the great work and stay hydrated! 🚀</p>
+    </div>
+    """, unsafe_allow_html=True)
+    for idx, record in enumerate(st.session_state.consumption_log):
+            st.markdown(f"""
+            <div class="track-record">
+                <strong>{record['time']}</strong> - Added {record['amount']}ml 💧
+            </div>
+            """, unsafe_allow_html=True)
+    col1, col2, col3 = st.columns([1, 1, 1])
+    
+    with col2:
+        if st.button("🔄 Start New Day", use_container_width=True, type="primary"):
+            st.session_state.water_consumed = 0
+            st.session_state.consumption_log = []
+            st.session_state.stage = 'dashboard'
+            st.rerun()
