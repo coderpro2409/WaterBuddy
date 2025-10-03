@@ -1,320 +1,891 @@
-import streamlit as st
 import datetime
-from datetime import timedelta
-import pandas as pd
-import plotly.graph_objects as go
+import random
+import streamlit as st
 
-# Set page config
-st.set_page_config(
-    page_title="💧 Hydration Reminder",
-    page_icon="💧",
-    layout="wide",
-    initial_sidebar_state="collapsed"
-)
+var = st.session_state
+hl = st.divider
 
-# Custom CSS for futuristic design
+# Initialize session state variables
+if "name" not in var:
+    var.name = None
+if "age_group" not in var:
+    var.age_group = None
+if "gender" not in var:
+    var.gender = None
+if "application" not in var:
+    var.application = 0
+if "mode" not in var:
+    var.mode = "DND"
+if "timelist" not in var:
+    var.timelist = []
+if "sleeptime" not in var:
+    var.sleeptime = None
+if "wi_final" not in var:
+    var.wi_final = None
+if "rl2" not in var:
+    var.rl2 = []
+if "reminder_list" not in var:
+    var.reminder_list = []
+if "completed" not in var:
+    var.completed = 0
+if "last_reminder_check" not in var:
+    var.last_reminder_check = datetime.datetime.now()
+
+# Global Styling
 st.markdown("""
 <style>
-    .main-header {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        padding: 2rem;
-        border-radius: 15px;
-        text-align: center;
-        color: white;
-        margin-bottom: 2rem;
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
+    
+    * {
+        font-family: 'Poppins', sans-serif;
     }
     
-    .water-glass {
-        width: 100px;
-        height: 150px;
-        border: 3px solid #4a90e2;
-        border-radius: 0 0 10px 10px;
+    .stApp {
+        background: linear-gradient(-45deg, #667eea, #764ba2, #f093fb, #4facfe);
+        background-size: 400% 400%;
+        animation: gradientFlow 20s ease infinite;
+    }
+    
+    @keyframes gradientFlow {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
+    
+    /* Floating particles */
+    .particle {
+        position: fixed;
+        border-radius: 50%;
+        pointer-events: none;
+        opacity: 0.6;
+        z-index: 0;
+    }
+    
+    /* Glass card effect */
+    .glass-card {
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 25px;
+        padding: 2.5rem;
+        margin: 1.5rem 0;
+        box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
         position: relative;
-        margin: 0 auto;
-        background: linear-gradient(to top, #4fc3f7 0%, #4fc3f7 var(--fill-height), transparent var(--fill-height));
+        overflow: hidden;
+        animation: fadeInUp 0.8s ease-out;
     }
     
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .glass-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+        transition: left 0.7s;
+    }
+    
+    .glass-card:hover::before {
+        left: 100%;
+    }
+    
+    /* Hero header */
+    .hero-header {
+        text-align: center;
+        color: white;
+        text-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        animation: titlePulse 3s ease-in-out infinite;
+        margin: 2rem 0;
+    }
+    
+    @keyframes titlePulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.02); }
+    }
+    
+    .hero-header h1 {
+        font-size: 3.5em;
+        font-weight: 800;
+        background: linear-gradient(135deg, #fff, #e0f7ff);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 0.5rem;
+    }
+    
+    .hero-header p {
+        font-size: 1.3em;
+        font-weight: 300;
+        opacity: 0.9;
+    }
+    
+    /* Custom input styling */
+    .stTextInput > div > div > input,
+    .stSelectbox > div > div > select {
+        background: rgba(255, 255, 255, 0.2) !important;
+        backdrop-filter: blur(10px) !important;
+        border: 2px solid rgba(255, 255, 255, 0.3) !important;
+        border-radius: 15px !important;
+        color: white !important;
+        font-size: 1.1em !important;
+        padding: 0.8rem !important;
+        transition: all 0.3s ease !important;
+    }
+    
+    .stTextInput > div > div > input:focus,
+    .stSelectbox > div > div > select:focus {
+        border-color: rgba(255, 255, 255, 0.6) !important;
+        box-shadow: 0 0 20px rgba(255, 255, 255, 0.3) !important;
+        transform: translateY(-2px);
+    }
+    
+    .stTextInput > div > div > input::placeholder {
+        color: rgba(255, 255, 255, 0.6) !important;
+    }
+    
+    /* Label styling */
+    label {
+        color: white !important;
+        font-weight: 500 !important;
+        font-size: 1.1em !important;
+        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    }
+    
+    /* Button styling */
+    .stButton > button {
+        background: linear-gradient(135deg, #667eea, #764ba2) !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 20px !important;
+        padding: 1rem 3rem !important;
+        font-size: 1.2em !important;
+        font-weight: 600 !important;
+        box-shadow: 0 15px 35px rgba(102, 126, 234, 0.4) !important;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        position: relative !important;
+        overflow: hidden !important;
+    }
+    
+    .stButton > button:hover {
+        transform: translateY(-5px) scale(1.05) !important;
+        box-shadow: 0 20px 50px rgba(102, 126, 234, 0.6) !important;
+    }
+    
+    .stButton > button::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 0;
+        height: 0;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.3);
+        transform: translate(-50%, -50%);
+        transition: width 0.5s, height 0.5s;
+    }
+    
+    .stButton > button:active::before {
+        width: 300px;
+        height: 300px;
+    }
+    
+    /* Progress bar styling */
+    div[data-testid="stProgress"] > div {
+        background: rgba(255, 255, 255, 0.2) !important;
+        backdrop-filter: blur(10px);
+        border-radius: 25px !important;
+        overflow: hidden;
+        height: 35px !important;
+        box-shadow: inset 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+    
+    div[data-testid="stProgress"] > div > div {
+        border-radius: 25px !important;
+        height: 35px !important;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    div[data-testid="stProgress"] > div > div::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+        animation: progressFlow 2s linear infinite;
+    }
+    
+    @keyframes progressFlow {
+        from { transform: translateX(-100%); }
+        to { transform: translateX(100%); }
+    }
+    
+    /* Stats card */
     .stats-card {
-        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-        padding: 1.5rem;
-        border-radius: 15px;
-        color: white;
-        text-align: center;
-        margin: 1rem 0;
-    }
-    
-    .reminder-card {
-        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-        padding: 1rem;
-        border-radius: 10px;
-        margin: 0.5rem 0;
-        color: white;
-    }
-    
-    .track-record {
-        background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-        padding: 1rem;
-        border-radius: 10px;
-        margin: 0.5rem 0;
-    }
-    
-    .congratulations {
-        background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
-        padding: 3rem;
+        background: rgba(255, 255, 255, 0.2);
+        backdrop-filter: blur(15px);
+        border: 2px solid rgba(255, 255, 255, 0.3);
         border-radius: 20px;
+        padding: 1.5rem;
+        margin: 1rem 0;
         text-align: center;
-        animation: pulse 2s infinite;
+        color: white;
+        transition: all 0.3s ease;
+        animation: float 4s ease-in-out infinite;
     }
     
-    @keyframes pulse {
-        0% { transform: scale(1); }
-        50% { transform: scale(1.05); }
-        100% { transform: scale(1); }
+    @keyframes float {
+        0%, 100% { transform: translateY(0px); }
+        50% { transform: translateY(-15px); }
+    }
+    
+    .stats-card:hover {
+        transform: translateY(-10px) scale(1.05);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+    }
+    
+    .stats-card h2 {
+        font-size: 3em;
+        font-weight: 700;
+        margin: 0;
+        text-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    }
+    
+    .stats-card p {
+        font-size: 1.2em;
+        opacity: 0.9;
+        margin: 0.5rem 0 0 0;
+    }
+    
+    /* Reminder card */
+    .reminder-card {
+        background: rgba(79, 195, 247, 0.25);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(79, 195, 247, 0.4);
+        border-radius: 15px;
+        padding: 1.2rem;
+        margin: 0.8rem 0;
+        color: white;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        transition: all 0.3s ease;
+        animation: slideInRight 0.5s ease-out;
+    }
+    
+    @keyframes slideInRight {
+        from {
+            opacity: 0;
+            transform: translateX(-30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+    
+    .reminder-card:hover {
+        transform: translateX(10px);
+        background: rgba(79, 195, 247, 0.35);
+        box-shadow: 0 10px 25px rgba(79, 195, 247, 0.3);
+    }
+    
+    .reminder-icon {
+        font-size: 2em;
+        animation: bell 2s ease-in-out infinite;
+    }
+    
+    @keyframes bell {
+        0%, 100% { transform: rotate(0deg); }
+        10% { transform: rotate(15deg); }
+        20% { transform: rotate(-15deg); }
+        30% { transform: rotate(10deg); }
+        40% { transform: rotate(-10deg); }
+        50% { transform: rotate(0deg); }
+    }
+    
+    /* Time record card */
+    .time-record {
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        border-radius: 12px;
+        padding: 1rem;
+        margin: 0.5rem 0;
+        color: white;
+        transition: all 0.3s ease;
+        animation: fadeIn 0.5s ease-out;
+    }
+    
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: scale(0.95);
+        }
+        to {
+            opacity: 1;
+            transform: scale(1);
+        }
+    }
+    
+    .time-record:hover {
+        background: rgba(255, 255, 255, 0.25);
+        transform: translateX(10px);
+    }
+    
+    /* Success celebration */
+    .success-container {
+        text-align: center;
+        animation: celebrate 2s ease-in-out infinite;
+    }
+    
+    @keyframes celebrate {
+        0%, 100% {
+            transform: scale(1) rotate(0deg);
+        }
+        25% {
+            transform: scale(1.05) rotate(2deg);
+        }
+        75% {
+            transform: scale(1.05) rotate(-2deg);
+        }
+    }
+    
+    .success-emoji {
+        font-size: 8em;
+        animation: bounce 1s ease-in-out infinite;
+    }
+    
+    @keyframes bounce {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-20px); }
+    }
+    
+    /* Divider styling */
+    hr {
+        border: none;
+        height: 2px;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5), transparent);
+        margin: 2rem 0;
+    }
+    
+    /* Info box styling */
+    .stAlert {
+        background: rgba(255, 255, 255, 0.2) !important;
+        backdrop-filter: blur(15px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.3) !important;
+        border-radius: 15px !important;
+        color: white !important;
+    }
+    
+    /* Water droplet animation */
+    .droplet {
+        position: fixed;
+        width: 10px;
+        height: 10px;
+        background: rgba(79, 195, 247, 0.6);
+        border-radius: 50%;
+        pointer-events: none;
+        animation: fall 3s linear infinite;
+        z-index: 0;
+    }
+    
+    @keyframes fall {
+        0% {
+            transform: translateY(-100px);
+            opacity: 1;
+        }
+        100% {
+            transform: translateY(100vh);
+            opacity: 0;
+        }
+    }
+    
+    /* Wave effect */
+    .wave-container {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 150px;
+        pointer-events: none;
+        z-index: 0;
+    }
+    
+    .wave {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 200%;
+        height: 100%;
+        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 120"><path d="M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V0H0V27.35A600.21,600.21,0,0,0,321.39,56.44Z" fill="rgba(255,255,255,0.1)"></path></svg>');
+        background-size: 50% 100%;
+        animation: wave 15s linear infinite;
+    }
+    
+    @keyframes wave {
+        0% { transform: translateX(0); }
+        100% { transform: translateX(-50%); }
+    }
+    
+    /* Glow effect for important elements */
+    .glow {
+        animation: glow 2s ease-in-out infinite;
+    }
+    
+    @keyframes glow {
+        0%, 100% {
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.5),
+                         0 0 30px rgba(79, 195, 247, 0.5);
+        }
+        50% {
+            text-shadow: 0 0 30px rgba(255, 255, 255, 0.8),
+                         0 0 50px rgba(79, 195, 247, 0.8);
+        }
     }
 </style>
+
+<script>
+// Create floating particles
+function createParticles() {
+    const container = document.querySelector('.stApp');
+    for (let i = 0; i < 20; i++) {
+        const particle = document.createElement('div');
+        particle.classList.add('particle');
+        particle.style.width = Math.random() * 8 + 3 + 'px';
+        particle.style.height = particle.style.width;
+        particle.style.left = Math.random() * 100 + '%';
+        particle.style.top = Math.random() * 100 + '%';
+        particle.style.background = `rgba(79, 195, 247, ${Math.random() * 0.5 + 0.2})`;
+        particle.style.animation = `float ${Math.random() * 10 + 5}s ease-in-out infinite`;
+        particle.style.animationDelay = Math.random() * 5 + 's';
+        if (container) container.appendChild(particle);
+    }
+}
+
+// Create water droplets
+function createDroplets() {
+    setInterval(() => {
+        const droplet = document.createElement('div');
+        droplet.classList.add('droplet');
+        droplet.style.left = Math.random() * 100 + '%';
+        droplet.style.animationDuration = Math.random() * 2 + 2 + 's';
+        document.body.appendChild(droplet);
+        
+        setTimeout(() => droplet.remove(), 3000);
+    }, 500);
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        createParticles();
+        createDroplets();
+    });
+} else {
+    createParticles();
+    createDroplets();
+}
+</script>
+
+<!-- Wave effect -->
+<div class="wave-container">
+    <div class="wave"></div>
+</div>
 """, unsafe_allow_html=True)
 
-# Initialize session state
-if 'stage' not in st.session_state:
-    st.session_state.stage = 'details'
+# Page 1: Initial Setup
+if var.application == 0:
+    st.markdown("""
+    <div class="hero-header">
+        <h1>💧 WaterBuddy</h1>
+        <p>Your Personal Water Intake Companion</p>
+    </div>
+    """, unsafe_allow_html=True)
     
-if 'water_consumed' not in st.session_state:
-    st.session_state.water_consumed = 0
+    st.markdown('<div class="glass-card">', unsafe_allow_html=True)
+    st.markdown("<h3 style='color:white; text-align:center; margin-bottom:2rem;'>✨ Let's Get to Know You</h3>", unsafe_allow_html=True)
     
-if 'consumption_log' not in st.session_state:
-    st.session_state.consumption_log = []
-
-def calculate_water_target(age_group, gender):
-    """Calculate recommended water target based on age and gender"""
-    male_targets = [1.75, 2.5, 2.75, 2.75, 2.75]  # for age groups 6-12,13-18,19-30,31-50,50+
-    female_targets = [1.5, 1.75, 2, 2, 2]
+    age_groups = ["6-12", "13-18", "19-30", "30-50", "50+"]
     
-    age_groups = ["6-12", "13-18", "19-30", "31-50", "50+"]
-    age_index = age_groups.index(age_group)
+    var.name = st.text_input("👤 What's Your Name?", placeholder="Enter your name here...")
+    hl()
     
-    if gender == "Male":
-        return male_targets[age_index] * 1000  # Convert to ml
-    else:
-        return female_targets[age_index] * 1000
-
-def calculate_reminders(target_ml, consumed_ml, sleep_hour, sleep_minute):
-    """Calculate reminder timings based on remaining water and time"""
-    now = datetime.datetime.now()
-    sleep_time = now.replace(hour=sleep_hour, minute=sleep_minute)
-    
-    # If sleep time is earlier than current time, assume it's for tomorrow
-    if sleep_time <= now:
-        sleep_time += timedelta(days=1)
-    
-    remaining_time = sleep_time - now
-    remaining_hours = remaining_time.total_seconds() / 3600
-    
-    remaining_ml = target_ml - consumed_ml
-    servings_needed = max(0, (remaining_ml / 250)+1)
-    
-    if servings_needed <= 0 or remaining_hours <= 0:
-        return []
-    
-    interval_hours = remaining_hours / servings_needed if servings_needed > 0 else 1
-    
-    reminders = []
-    current_time = now
-    
-    for i in range(int(servings_needed)):
-        current_time += timedelta(hours=interval_hours)
-        if current_time < sleep_time:
-            reminders.append(current_time.strftime("%H:%M"))
-    
-    return reminders
-
-def draw_water_glass(percentage):
-    """Draw a water glass with fill percentage"""
-    fig = go.Figure()
-    
-    # Glass outline
-    fig.add_shape(
-        type="rect",
-        x0=0, y0=0, x1=1, y1=1,
-        line=dict(color="#4a90e2", width=3),
-        fillcolor="rgba(0,0,0,0)"
-    )
-    
-    # Water fill
-    fill_height = percentage / 100
-    fig.add_shape(
-        type="rect",
-        x0=0, y0=0, x1=1, y1=fill_height,
-        fillcolor="#4fc3f7",
-        line=dict(width=0)
-    )
-    
-    fig.update_layout(
-        showlegend=False,
-        xaxis=dict(visible=False),
-        yaxis=dict(visible=False),
-        width=200,
-        height=300,
-        margin=dict(l=0, r=0, b=0, t=0)
-    )
-    
-    return fig
-
-# Stage 1: User Details
-if st.session_state.stage == 'details':
-    st.markdown('<div class="main-header"><h1>💧 Welcome to Hydration Reminder</h1><p>Let\'s personalize your water intake goals!</p></div>', unsafe_allow_html=True)
-    
-    with st.form("user_details"):
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            name = st.text_input("👤 Your Name", placeholder="Enter your name")
-            age_group = st.selectbox("🎂 Age Group", ["6-12", "13-18", "19-30", "31-50", "50+"])
-            gender = st.selectbox("⚧ Gender", ["Male", "Female"])
-        
-        with col2:
-            sleep_hour = st.selectbox("🌙 Sleep Hour", range(18, 24), index=4)  # Default 22:00
-            sleep_minute = st.selectbox("🌙 Sleep Minute", [0, 15, 30, 45], index=0)
-            
-            # Calculate recommended target
-            recommended_target = calculate_water_target(age_group, gender)
-            
-            # Custom water target
-            custom_target = st.selectbox(
-                f"🎯 Water Target (ml) - Recommended: {int(recommended_target)}ml",
-                range(250, 10250, 250),
-                index=int((recommended_target - 250) / 250)
-            )
-        
-        submitted = st.form_submit_button("🚀 Start Your Hydration Journey!", use_container_width=True)
-        
-        if submitted and name:
-            st.session_state.user_name = name
-            st.session_state.age_group = age_group
-            st.session_state.gender = gender
-            st.session_state.sleep_hour = sleep_hour
-            st.session_state.sleep_minute = sleep_minute
-            st.session_state.water_target = custom_target
-            st.session_state.stage = 'dashboard'
-            st.rerun()
-        elif submitted:
-            st.error("Please enter your name to continue!")
-
-# Stage 2: Dashboard
-elif st.session_state.stage == 'dashboard':
-    # Check if target is reached
-    if st.session_state.water_consumed >= st.session_state.water_target:
-        st.session_state.stage = 'congratulations'
-        st.rerun()
-    percentage = (st.session_state.water_consumed / st.session_state.water_target) * 100
-    
-    st.markdown(f'<div class="main-header"><h1>🌟 Hello, {st.session_state.user_name}!</h1><p>Stay hydrated and healthy today!</p></div>', unsafe_allow_html=True)
-    
-    col1, col2 = st.columns([1, 1])
+    col1, col2 = st.columns(2)
     
     with col1:
-        st.markdown("### 💧 Quick Action")
-        if st.button("⚡ +250ml", use_container_width=True, type="primary"):
-            st.session_state.water_consumed += 250
-            st.session_state.consumption_log.append({
-                'time': datetime.datetime.now().strftime("%H:%M"),
-                'amount': 250
-            })
+        st.markdown('<p style="color:white; font-weight:500;">🎂 Age Group</p>', unsafe_allow_html=True)
+        var.age_group = st.selectbox("Age Group", age_groups, label_visibility="collapsed")
+    
+    with col2:
+        st.markdown('<p style="color:white; font-weight:500;">⚧ Gender</p>', unsafe_allow_html=True)
+        var.gender = st.selectbox("Gender", ["male", "female"], label_visibility="collapsed")
+    
+    hl()
+    
+    st.markdown("<h4 style='color:white; text-align:center; margin-top:2rem;'>🌙 When Do You Usually Sleep?</h4>", unsafe_allow_html=True)
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.markdown('<p style="color:white; font-weight:500;">Hour</p>', unsafe_allow_html=True)
+        var.sleephour = st.selectbox("Sleep Hour", ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"], label_visibility="collapsed")
+    
+    with col2:
+        st.markdown('<p style="color:white; font-weight:500;">Minute</p>', unsafe_allow_html=True)
+        var.sleepminute = st.selectbox("Sleep Minute", ["00", "15", "30", "45"], label_visibility="collapsed")
+    
+    with col3:
+        st.markdown('<p style="color:white; font-weight:500;">AM/PM</p>', unsafe_allow_html=True)
+        var.sleepmeridien = st.selectbox("AM/PM", ["AM", "PM"], label_visibility="collapsed")
+    
+    hl()
+    
+    # Water intake recommendations
+    var.male_water_intake = [1.75, 2.50, 2.75, 2.75, 2.75]
+    var.female_water_intake = [1.50, 1.75, 2.00, 2.00, 2.00]
+    
+    if var.gender == "male":
+        var.wi = var.male_water_intake[age_groups.index(var.age_group)] * 1000
+    if var.gender == "female":
+        var.wi = var.female_water_intake[age_groups.index(var.age_group)] * 1000
+    
+    var.whole = []
+    for i in range(250, 5250, 250):
+        var.whole.append(str(i))
+    
+    st.markdown(f"""
+    <div style='text-align:center; margin:2rem 0;'>
+        <p style='color:white; font-size:1.1em;'>🎯 Your Daily Water Target</p>
+        <p style='color:#4fc3f7; font-size:1.3em; font-weight:600;'>Recommended: {int(var.wi)} ml</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    var.wi_final = st.selectbox("Water Target", var.whole, var.whole.index(str(int(var.wi))), label_visibility="collapsed")
+    var.wi_final = int(var.wi_final)
+    var.completed = 0
+    var.final_name = var.name
+    
+    st.markdown("</div>", unsafe_allow_html=True)
+    
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        if st.button("🚀 Start Your Journey", use_container_width=True):
+            if var.name.replace(" ", "") == "":
+                st.error("🙋 Please enter your name to continue!")
+            else:
+                var.application = 1
+                st.rerun()
+
+# Page 2: Main Water Tracking
+if var.application == 1:
+    var.init_time = datetime.datetime.now()
+    
+    if var.sleepmeridien == "PM":
+        var.meridien_adjustment = 12
+    else:
+        var.meridien_adjustment = 0
+    
+    var.hour_meridien = int(var.sleephour) + var.meridien_adjustment
+    var.timeleft = int((var.hour_meridien - var.init_time.hour) * 60) + (int(var.sleepminute) - 30 - var.init_time.minute)
+    
+    if var.timeleft <= 0:
+        var.application = 3
+        st.rerun()
+    else:
+        var.d = 250
+        var.n = var.wi_final / var.d
+        var.per = int(var.timeleft / var.n)
+        
+        if round(var.per, 0) < 30:
+            var.application = 3
             st.rerun()
+        
+        # Calculate reminder times
+        if not var.reminder_list:
+            var.reminder_list = []
+            for item in range(1, int(var.n + 1)):
+                hour = int(((var.init_time.hour * 60) + var.init_time.minute + (item * var.per)) // 60)
+                minute = int(((var.init_time.hour * 60) + var.init_time.minute + (item * var.per)) % 60)
+                var.reminder_list.append([hour, minute])
+    
+    # Header
+    st.markdown(f"""
+    <div class="hero-header">
+        <h1 class="glow">Hi {var.name}! 👋</h1>
+        <p>Let's crush your hydration goals today!</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Progress section
+    st.markdown('<div class="glass-card">', unsafe_allow_html=True)
+    
+    percentage = (var.completed / var.wi_final) * 100 if var.wi_final > 0 else 0
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
         st.markdown(f"""
         <div class="stats-card">
-            <h3>{percentage:.1f}% Complete</h3>
-            <p>{st.session_state.water_consumed}ml / {st.session_state.water_target}ml</p>
-            <p>Remaining: {max(0, st.session_state.water_target - st.session_state.water_consumed)}ml</p>
+            <h2>{int(var.wi_final)}</h2>
+            <p>🎯 Target (ml)</p>
         </div>
         """, unsafe_allow_html=True)
     
     with col2:
-        st.markdown("### 📊 Progress")
-        
-        # Display water glass
-        fig = draw_water_glass(min(percentage, 100))
-        st.plotly_chart(fig, use_container_width=True)
-        
+        st.markdown(f"""
+        <div class="stats-card">
+            <h2>{int(var.completed)}</h2>
+            <p>💧 Consumed (ml)</p>
+        </div>
+        """, unsafe_allow_html=True)
     
-    # with col3:
-    #     st.markdown("### ⏰ Custom Amount")
-    #     custom_amount = st.number_input("Add ml:", min_value=50, max_value=1000, step=50, value=250)
-    #     if st.button(f"Add {custom_amount}ml", use_container_width=True):
-    #         st.session_state.water_consumed += custom_amount
-    #         st.session_state.consumption_log.append({
-    #             'time': datetime.datetime.now().strftime("%H:%M"),
-    #             'amount': custom_amount
-    #         })
-    #         st.rerun()
+    with col3:
+        st.markdown(f"""
+        <div class="stats-card">
+            <h2>{round(percentage, 1)}%</h2>
+            <p>📊 Progress</p>
+        </div>
+        """, unsafe_allow_html=True)
     
-    # Reminder Section
-    st.markdown("### 🔔 Smart Reminders")
+    st.markdown("<br>", unsafe_allow_html=True)
     
-    reminders = calculate_reminders(
-        st.session_state.water_target,
-        st.session_state.water_consumed,
-        st.session_state.sleep_hour,
-        st.session_state.sleep_minute
-    )
-    
-    if reminders:
-        st.markdown("**Calculated reminder times:**")
-        for i, reminder_time in enumerate(reminders):
-            # col1, col2 = st.columns([3, 1])
-            # with col1:
-            st.markdown(f'<div class="reminder-card">💧 Reminder {i+1}: {reminder_time}</div>', unsafe_allow_html=True)
-            # with col2:
-            #     new_time = st.selectbox(f"Edit #{i+1}", 
-            #                           [f"{h:02d}:{m:02d}" for h in range(6, 24) for m in [0, 15, 30, 45]], 
-            #                           index=0, key=f"reminder_{i}")
-    else:
-        st.success("🎉 Great job! You're on track or have completed your daily goal!")
-    
-    # Track Record
-    st.markdown("### 📈 Today's Track Record")
-    
-    if st.session_state.consumption_log:
-        df = pd.DataFrame(st.session_state.consumption_log)
-        
-        for idx, record in enumerate(st.session_state.consumption_log):
-            st.markdown(f"""
-            <div class="track-record">
-                <strong>{record['time']}</strong> - Added {record['amount']}ml 💧
-            </div>
-            """, unsafe_allow_html=True)
-    else:
-        st.info("No water consumed yet today. Start hydrating! 💧")
-    
-    # Reset button
-    if st.button("🔄 Reset Today's Progress", type="secondary"):
-        st.session_state.water_consumed = 0
-        st.session_state.consumption_log = []
-        st.rerun()
-
-# Stage 3: Congratulations
-elif st.session_state.stage == 'congratulations':
-    st.markdown(f"""
-    <div class="congratulations">
-        <h1>🎉 Congratulations, {st.session_state.user_name}!</h1>
-        <h2>💧 You've reached your daily hydration goal! 💧</h2>
-        <p style="font-size: 1.2em;">Target: {st.session_state.water_target}ml ✅</p>
-        <p style="font-size: 1.2em;">Consumed: {st.session_state.water_consumed}ml 🌟</p>
-        <br>
-        <h3>🌅 See you tomorrow morning for another healthy day!</h3>
-        <p>Keep up the great work and stay hydrated! 🚀</p>
-    </div>
+    # Progress bar
+    st.markdown("""
+    <style>
+    div[data-testid="stProgress"] > div > div > div {
+        height: 20px;  /* Change this value as needed */
+    }
+    </style>
     """, unsafe_allow_html=True)
-    for idx, record in enumerate(st.session_state.consumption_log):
+
+    var.bar = st.progress(percentage/100)
+    
+    # Progress bar color gradient
+    if percentage <= 60:
+        gradient = "90deg, #4facfe, #00f2fe"
+    else:
+        gradient = "90deg, #fa709a, #fee140"
+    
+    st.markdown(f"""
+    <style>
+    div[data-testid="stProgress"] > div > div > div > div {{
+        background: linear-gradient({gradient}) !important;
+    }}
+    </style>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("</div>", unsafe_allow_html=True)
+    
+    # Check for reminders
+    current_time = datetime.datetime.now()
+    for reminder_time in var.reminder_list[:]:
+        if (current_time.hour == reminder_time[0] and 
+            current_time.minute == reminder_time[1] and
+            abs((current_time - var.last_reminder_check).total_seconds()) < 120):
+            motivating_words = ["Come on", "You can do it", "Keep pushing", "Nail it"]
+            st.success(f"🚰 {random.choice(motivating_words)}! Time for your glass of water!")
+            st.balloons()
+            var.reminder_list.remove(reminder_time)
+            var.last_reminder_check = current_time
+    
+    # Quick action
+    st.markdown('<div class="glass-card">', unsafe_allow_html=True)
+    st.markdown("<h3 style='color:white; text-align:center; margin-bottom:1.5rem;'>⚡ Quick Action</h3>", unsafe_allow_html=True)
+    
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        if st.button("💧 Add 250ml", use_container_width=True):
+            var.completed += 250
+            var.bar.progress(var.completed / var.wi_final)
+            
+            now = datetime.datetime.now()
+            hour = now.hour
+            ampm = "A.M."
+            if now.hour >= 12:
+                if now.hour > 12:
+                    hour = now.hour - 12
+                ampm = "P.M."
+            
+            var.timelist.append(f"{now.day}/{now.month}/{now.year} - {hour}:{now.minute:02d} {ampm}")
+            
+            if var.wi_final - var.completed <= 0:
+                var.application = 2
+            st.rerun()
+    
+    st.markdown("</div>", unsafe_allow_html=True)
+    
+    # Upcoming reminders
+    if var.reminder_list:
+        st.markdown('<div class="glass-card">', unsafe_allow_html=True)
+        st.markdown("<h3 style='color:white; margin-bottom:1.5rem;'>⏰ Upcoming Reminders</h3>", unsafe_allow_html=True)
+        
+        for idx, m in enumerate(var.reminder_list):
+            show_hour = m[0]
+            show_minute = m[1]
+            show_ampm = "A.M."
+            if show_hour >= 12:
+                if show_hour > 12:
+                    show_hour = show_hour - 12
+                show_ampm = "P.M."
+            elif show_hour == 0:
+                show_hour = 12
+            
             st.markdown(f"""
-            <div class="track-record">
-                <strong>{record['time']}</strong> - Added {record['amount']}ml 💧
+            <div class="reminder-card">
+                <span class="reminder-icon">🔔</span>
+                <div>
+                    <strong style="font-size:1.2em;">{show_hour}:{show_minute:02d} {show_ampm}</strong>
+                    <p style="margin:0; opacity:0.8;">Reminder #{idx + 1}</p>
+                </div>
             </div>
             """, unsafe_allow_html=True)
-    col1, col2, col3 = st.columns([1, 1, 1])
+        
+        st.markdown("</div>", unsafe_allow_html=True)
+    
+    # Time record
+    if var.timelist:
+        st.markdown('<div class="glass-card">', unsafe_allow_html=True)
+        st.markdown("<h3 style='color:white; margin-bottom:1.5rem;'>📈 Today's Timeline</h3>", unsafe_allow_html=True)
+        
+        for x in var.timelist[::-1]:
+            st.markdown(f"""
+            <div class="time-record">
+                <strong>💧 {x}</strong> - Added 250ml
+            </div>
+            """, unsafe_allow_html=True)
+        
+        st.markdown("</div>", unsafe_allow_html=True)
+    
+    # Auto-refresh button
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        if st.button("🔄 Check for Reminders", use_container_width=True):
+            st.rerun()
+
+# Page 3: Success Page
+if var.application == 2:
+    st.markdown("""
+    <div class="success-container">
+        <div class="success-emoji">🎉</div>
+        <div class="hero-header">
+            <h1 class="glow">Congratulations, {name}!</h1>
+            <p>You've crushed your daily hydration goal!</p>
+        </div>
+    </div>
+    """.format(name=var.name), unsafe_allow_html=True)
+    
+    st.markdown('<div class="glass-card">', unsafe_allow_html=True)
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown(f"""
+        <div class="stats-card">
+            <h2>✅</h2>
+            <p>Target Achieved</p>
+            <h3>{int(var.wi_final)} ml</h3>
+        </div>
+        """, unsafe_allow_html=True)
     
     with col2:
-        if st.button("🔄 Start New Day", use_container_width=True, type="primary"):
-            st.session_state.water_consumed = 0
-            st.session_state.consumption_log = []
-            st.session_state.stage = 'dashboard'
+        st.markdown(f"""
+        <div class="stats-card">
+            <h2>💧</h2>
+            <p>Total Consumed</p>
+            <h3>{int(var.completed)} ml</h3>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    st.markdown("""
+    <div style='text-align:center; margin:2rem 0;'>
+        <h3 style='color:white;'>🌅 See You Tomorrow!</h3>
+        <p style='color:white; font-size:1.2em; opacity:0.9;'>Keep up the amazing work and stay hydrated!</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("</div>", unsafe_allow_html=True)
+    
+    # Time record
+    if var.timelist:
+        st.markdown('<div class="glass-card">', unsafe_allow_html=True)
+        st.markdown("<h3 style='color:white; text-align:center; margin-bottom:1.5rem;'>📊 Today's Complete Timeline</h3>", unsafe_allow_html=True)
+        
+        for x in var.timelist[::-1]:
+            st.markdown(f"""
+            <div class="time-record">
+                <strong>💧 {x}</strong> - Added 250ml
+            </div>
+            """, unsafe_allow_html=True)
+        
+        st.markdown("</div>", unsafe_allow_html=True)
+    
+    st.balloons()
+    
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        if st.button("🔄 Start Fresh Tomorrow", use_container_width=True):
+            for key in list(var.keys()):
+                del var[key]
             st.rerun()
+
+# Page 4: Too Late Page
+if var.application == 3:
+    st.markdown(f"""
+    <div class="hero-header">
+        <h1>🌙 Good Night, {var.name}!</h1>
+        <p>Time to rest and recharge</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown('<div class="glass-card">', unsafe_allow_html=True)
+    
+    st.markdown("""
+    <div style='text-align:center;'>
+        <div class="success-emoji">😴</div>
+        <h3 style='color:white; margin:2rem 0;'>It's Getting Late!</h3>
+        <p style='color:white; font-size:1.2em; line-height:1.8; opacity:0.9;'>
+            Sorry, but we've run out of time for today.<br>
+            Our day ends at midnight (12:00 AM).<br><br>
+            Don't worry - tomorrow is a fresh start! 💪<br><br>
+            <strong>Sweet dreams and see you in the morning! 🌅</strong>
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("""
+    <div style="display:flex; justify-content:center; align-items:center; margin:3rem 0;">
+        <div style="font-size: 120px; animation: bounce 2s ease-in-out infinite;">🌙💤</div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("</div>", unsafe_allow_html=True)
+    
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        if st.button("🌅 Start New Day", use_container_width=True):
+            for key in list(var.keys()):
+                del var[key]
+            st.rerun()
+
+# Auto-refresh script for reminder checking (only on main page)
+if var.application == 1:
+    st.markdown("""
+    <script>
+    setTimeout(function(){
+        window.location.reload(1);
+    }, 6000);
+    </script>
+    """, unsafe_allow_html=True)
