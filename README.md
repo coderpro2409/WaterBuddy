@@ -24,8 +24,8 @@ Hence, the app does not provide solutions for sleep time after 12:00 AM (Midnigh
 #### Track Record 📈
 Sometimes, it might be that the user forgot whether he/she has clicked the button of +250 ml or not. So for better track, the app also shows the track record of when the user had drunk water.
 
-## Procedure 📰
-#### Details Page (Initial) 📰
+## Procedure ⚙️
+#### Details Page (Initial) 📄
 This page serves the purpose of fetching user details. The following details are asked by the interface - Name (Any), Age-group (6-12, 13-18, 19-30, 31-50, 50+), Gender (Male/Female), Sleep Hour (1,2,3,...,12), Sleep Minute (0,1,2,3,...,59), Sleep Meridien (AM,PM), Water Target ml: Ideally suggested {AI-Based water target according to age and gender} (250,500,750,...,5000)
 Nothing more, just click the button "Start your Journey", and this will lead you to the next page.
 #### Dashboard Page (Main) 📊
