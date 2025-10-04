@@ -539,17 +539,32 @@ if var.application == 0:
     
     col1, col2, col3 = st.columns(3)
     
+    ct=datetime.datetime.now()
     with col1:
         st.markdown('<p style="color:white; font-weight:500;">Hour</p>', unsafe_allow_html=True)
-        var.sleephour = st.selectbox("Sleep Hour", ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"], label_visibility="collapsed")
+        if ct.hour>12:
+            sh_list=[str(x) for x in range(ct.hour,13)]
+        else:
+            sh_list=[str(x) for x in range(1,13)]
+        # sh_list=list(sh_list)
+        print(sh_list)
+        var.sleephour = st.selectbox("Sleep Hour", sh_list, label_visibility="collapsed")
     
     with col2:
         st.markdown('<p style="color:white; font-weight:500;">Minute</p>', unsafe_allow_html=True)
-        var.sleepminute = st.selectbox("Sleep Minute", ["00", "15", "30", "45"], label_visibility="collapsed")
+        # sm_list=[]
+        sm_list=[str(y) for y in range(0,60)]
+        # sm_list=list(sm_list)
+        # print(sm_list)
+        var.sleepminute = st.selectbox("Sleep Minute", sm_list, label_visibility="collapsed")
     
     with col3:
         st.markdown('<p style="color:white; font-weight:500;">AM/PM</p>', unsafe_allow_html=True)
-        var.sleepmeridien = st.selectbox("AM/PM", ["AM", "PM"], label_visibility="collapsed")
+        smer_list=["AM","PM"]
+        if ct.hour>12:
+            smer_list.remove("AM")
+        print(smer_list)
+        var.sleepmeridien = st.selectbox("AM/PM", smer_list, label_visibility="collapsed")
     
     hl()
     
@@ -624,8 +639,8 @@ if var.application == 1:
     # Header
     st.markdown(f"""
     <div class="hero-header">
-        <h1 class="glow">Hi {var.name}! 👋</h1>
-        <p>Let's crush your hydration goals today!</p>
+        <h1 class="glow">Hi {var.name}!</h1>
+        <p>Let's crush your hydration goals today! 👋</p>
     </div>
     """, unsafe_allow_html=True)
     
