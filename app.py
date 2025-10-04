@@ -4,7 +4,10 @@ import streamlit as st
 
 var = st.session_state
 hl = st.divider
-
+st.set_page_config(
+    "WaterBuddy",
+    "💧"
+)
 # Initialize session state variables
 if "name" not in var:
     var.name = None
